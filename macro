@@ -1,0 +1,623 @@
+Function ValidarCPF(cpf As String) As Boolean
+    Dim i, j, digito1, digito2 As Integer
+    Dim cpfNumeros(10) As Integer
+    Dim valido As Boolean
+    
+    ' Remove caracteres não numéricos
+    cpf = Replace(cpf, ".", "")
+    cpf = Replace(cpf, "-", "")
+    cpf = Replace(cpf, " ", "")
+    
+    ' Verifica se tem 11 dígitos e se é numérico
+    If Len(cpf) <> 11 Or Not IsNumeric(cpf) Then
+        ValidarCPF = False
+        Exit Function
+    End If
+    
+    ' Verifica se todos os dígitos são iguais (ex: 111.111.111-11)
+    For i = 1 To 10
+        If Mid(cpf, i, 1) <> Mid(cpf, i + 1, 1) Then
+            Exit For
+        End If
+    Next i
+    If i = 11 Then
+        ValidarCPF = False
+        Exit Function
+    End If
+    
+    ' Converte cada caractere para número
+    For i = 0 To 10
+        cpfNumeros(i) = CInt(Mid(cpf, i + 1, 1))
+    Next i
+    
+    ' Cálculo do primeiro dígito verificador
+    digito1 = 0
+    For i = 0 To 8
+        digito1 = digito1 + (cpfNumeros(i) * (10 - i))
+    Next i
+    digito1 = (digito1 * 10) Mod 11
+    If digito1 = 10 Then digito1 = 0
+    
+    ' Cálculo do segundo dígito verificador
+    digito2 = 0
+    For i = 0 To 9
+        digito2 = digito2 + (cpfNumeros(i) * (11 - i))
+    Next i
+    digito2 = (digito2 * 10) Mod 11
+    If digito2 = 10 Then digito2 = 0
+    
+    ' Verifica se os dígitos estão corretos
+    If digito1 = cpfNumeros(9) And digito2 = cpfNumeros(10) Then
+        ValidarCPF = True
+    Else
+        ValidarCPF = False
+    End If
+End Function
+
+Function ValidarCNPJ(cnpj As String) As Boolean
+    Dim i, j, digito1, digito2 As Integer
+    Dim cnpjNumeros(13) As Integer
+    Dim pesos1(11) As Integer
+    Dim pesos2(12) As Integer
+    
+    ' Remove caracteres não numéricos
+    cnpj = Replace(cnpj, ".", "")
+    cnpj = Replace(cnpj, "-", "")
+    cnpj = Replace(cnpj, "/", "")
+    cnpj = Replace(cnpj, " ", "")
+    
+    ' Verifica se tem 14 dígitos e se é numérico
+    If Len(cnpj) <> 14 Or Not IsNumeric(cnpj) Then
+        ValidarCNPJ = False
+        Exit Function
+    End If
+    
+    ' Verifica se todos os dígitos são iguais (ex: 11.111.111/1111-11)
+    For i = 1 To 13
+        If Mid(cnpj, i, 1) <> Mid(cnpj, i + 1, 1) Then
+            Exit For
+        End If
+    Next i
+    If i = 14 Then
+        ValidarCNPJ = False
+        Exit Function
+    End If
+    
+    ' Converte cada caractere para número
+    For i = 0 To 13
+        cnpjNumeros(i) = CInt(Mid(cnpj, i + 1, 1))
+    Next i
+    
+    ' Define pesos para o primeiro dígito verificador (5 a 2, depois 9 a 2)
+    pesos1 = Array(5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+    
+    ' Cálculo do primeiro dígito verificador (13º dígito do CNPJ)
+    digito1 = 0
+    For i = 0 To 11
+        digito1 = digito1 + (cnpjNumeros(i) * pesos1(i))
+    Next i
+    digito1 = digito1 Mod 11
+    If digito1 < 2 Then
+        digito1 = 0
+    Else
+        digito1 = 11 - digito1
+    End If
+    
+    ' Verifica se o primeiro dígito está correto
+    If digito1 <> cnpjNumeros(12) Then
+        ValidarCNPJ = False
+        Exit Function
+    End If
+    
+    ' Define pesos para o segundo dígito verificador (6 a 2, depois 9 a 2)
+    pesos2 = Array(6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+    
+    ' Cálculo do segundo dígito verificador (14º dígito do CNPJ)
+    digito2 = 0
+    For i = 0 To 12
+        digito2 = digito2 + (cnpjNumeros(i) * pesos2(i))
+    Next i
+    digito2 = digito2 Mod 11
+    If digito2 < 2 Then
+        digito2 = 0
+    Else
+        digito2 = 11 - digito2
+    End If
+    
+    ' Verifica se o segundo dígito está correto
+    If digito2 <> cnpjNumeros(13) Then
+        ValidarCNPJ = False
+        Exit Function
+    End If
+    
+    ' Se passou por todas as verificações, CNPJ é válido
+    ValidarCNPJ = True
+End Function
+
+Sub ValidarEFormatarCPFouCNPJ()
+    Dim oSelection As Object
+    Dim sTexto As String
+    Dim sNumeros As String
+    Dim resultado As Boolean
+    Dim textoFormatado As String
+    
+    oSelection = ThisComponent.getCurrentSelection()
+    
+    If Not oSelection.supportsService("com.sun.star.text.TextRanges") Then
+        MsgBox "Selecione um CPF ou CNPJ no documento.", 16, "Erro"
+        Exit Sub
+    End If
+    
+    sTexto = oSelection.getByIndex(0).getString()
+    
+    ' Remove caracteres não numéricos
+    sNumeros = Replace(sTexto, ".", "")
+    sNumeros = Replace(sNumeros, "-", "")
+    sNumeros = Replace(sNumeros, "/", "")
+    sNumeros = Replace(sNumeros, " ", "")
+    
+    If Len(sNumeros) = 11 Then
+        resultado = ValidarCPF(sNumeros)
+        If resultado Then
+            textoFormatado = "CPF N° " & Left(sNumeros, 3) & "." & Mid(sNumeros, 4, 3) & "." & Mid(sNumeros, 7, 3) & "-" & Right(sNumeros, 2)
+            oSelection.getByIndex(0).setString(textoFormatado)
+        Else
+            MsgBox "CPF inválido!", 16, "Validação"
+        End If
+        
+    ElseIf Len(sNumeros) = 14 Then
+        resultado = ValidarCNPJ(sNumeros)
+        If resultado Then
+            textoFormatado = "CNPJ N° " & Left(sNumeros, 2) & "." & Mid(sNumeros, 3, 3) & "." & Mid(sNumeros, 6, 3) & "/" & Mid(sNumeros, 9, 4) & "-" & Right(sNumeros, 2)
+            oSelection.getByIndex(0).setString(textoFormatado)
+        Else
+            MsgBox "CNPJ inválido!", 16, "Validação"
+        End If
+        
+    Else
+        MsgBox "Texto selecionado não tem 11 (CPF) ou 14 (CNPJ) dígitos numéricos.", 48, "Aviso"
+    End If
+End Sub
+
+Function MapCNS(cnsNumber As String) As String
+    ' Remove any formatting from the CNS number for comparison
+    Dim cleanCNS As String
+    cleanCNS = Replace(cnsNumber, ".", "")
+    cleanCNS = Replace(cleanCNS, "-", "")
+    
+    ' Map CNS numbers to registry offices
+    Select Case cleanCNS
+        Case "083022", "08302-2"
+            MapCNS = "1º Registro de Imóveis de Cascavel – Paraná"
+        Case "085571", "08557-1"
+            MapCNS = "2º Registro de Imóveis de Cascavel – Paraná"
+        Case "080473", "08047-3"
+            MapCNS = "3º Registro de Imóveis de Cascavel – Paraná"
+        Case "088401", "08840-1"
+            MapCNS = "1º Registro de Imóveis de Toledo – Paraná"
+        Case "080226", "08022-6"
+            MapCNS = "2º Registro de Imóveis de Toledo – Paraná"
+        Case "079962", "07996-2"
+            MapCNS = "1º Registro de Imóveis de Assis Chateaubriand – Paraná"
+        Case "080804", "08080-4"
+            MapCNS = "2º Registro de Imóveis de Assis Chateaubriand – Paraná"
+        Case "085183", "08518-3"
+            MapCNS = "Registro de Imóveis de Marechal Cândido Rondon – Paraná"
+        Case "086041", "08604-1"
+            MapCNS = "Registro de Imóveis de Palotina – Paraná"
+        Case "085464", "08546-4"
+            MapCNS = "Registro de Imóveis de Santa Helena – Paraná"
+        Case Else
+            MapCNS = "Registro de Imóveis não identificado"
+    End Select
+End Function
+
+Function FormatarMilhar(valor As String) As String
+    Dim numero As Long
+    If IsNumeric(valor) Then
+        numero = CLng(valor)
+        FormatarMilhar = Format(numero, "#,###")
+    Else
+        FormatarMilhar = valor ' Retorna como está se não for numérico
+    End If
+End Function
+
+Sub ExportUniqueRowsToODT_FinalDebugged()
+    On Error GoTo ErrorHandler
+    
+    ' Main variables
+    Dim oDoc As Object, oSheet As Object
+    Dim oODTDoc As Object, oText As Object, oCursor As Object
+    Dim sODSPath As String, humanPath As String
+    
+    ' Data processing
+    Dim dataArray As Variant, i As Long, j As Long
+    Dim desc As String, mat As String, cns As String, key As String
+    
+    ' Storage using arrays
+    Dim uniqueKeys(), uniqueValues()
+    ReDim uniqueKeys(50) ' Initial size
+    ReDim uniqueValues(50)
+    Dim keyCount As Long
+    keyCount = 0
+    
+    ' Get current document
+    oDoc = ThisComponent
+    If Not oDoc.hasLocation() Then
+        MsgBox "Please save your spreadsheet first!", 0, "Document Not Saved"
+        Exit Sub
+    End If
+    
+    ' Get the second sheet ("perimetro_1")
+    If oDoc.Sheets.getCount() < 2 Then
+        MsgBox "Cannot find the required sheet!", 0, "Error"
+        Exit Sub
+    End If
+    oSheet = oDoc.Sheets.getByIndex(1)
+    
+    ' Column indexes (0-based) - J(9), K(10), L(11)
+    Const colDesc = 9, colMat = 10, colCNS = 11
+    Const startRow = 11 ' Row 12 (0-based)
+    
+    ' Ask user for the last row to process
+    Dim lastRowInput As String
+    lastRowInput = InputBox("Enter the last row number to include:", "Manual Row Input", "")
+    If Not IsNumeric(lastRowInput) Then
+        MsgBox "Invalid row number entered.", 0, "Input Error"
+        Exit Sub
+    End If
+    Dim lastRow As Long
+    lastRow = CLng(lastRowInput) - 1 ' Convert to 0-based
+    If lastRow < startRow Then
+        MsgBox "Last row must be greater than row " & (startRow + 1), 0, "Input Error"
+        Exit Sub
+    End If
+    
+    ' Get only the needed data
+    Dim oRange As Object
+    oRange = oSheet.getCellRangeByPosition(colDesc, startRow, colCNS, lastRow)
+    dataArray = oRange.getDataArray()
+    
+    ' Process data
+    For i = LBound(dataArray) To UBound(dataArray)
+        ' SAFE array access
+        On Error Resume Next
+        If IsArray(dataArray(i)) Then
+            cns = Trim(dataArray(i)(0)) ' Column J
+            mat = Trim(dataArray(i)(1))  ' Column K
+            desc = Trim(dataArray(i)(2))  ' Column L
+        Else
+            desc = Trim(dataArray(i))
+            mat = ""
+            cns = ""
+        End If
+        On Error GoTo 0
+        
+        If desc <> "" Then
+            ' Check for existing entry with same desc OR same mat
+            Dim exists As Boolean
+            exists = False
+            For j = 0 To keyCount - 1
+                Dim parts() As String
+                parts = Split(uniqueKeys(j), "|")
+                If parts(0) = desc Or parts(1) = mat Then
+                    exists = True
+                    Exit For
+                End If
+            Next j
+    
+            ' Use desc and mat for storage
+            key = desc & "|" & mat
+            
+            If Not exists Then
+                If keyCount >= UBound(uniqueKeys) Then
+                    ReDim Preserve uniqueKeys(keyCount + 50)
+                    ReDim Preserve uniqueValues(keyCount + 50)
+                End If
+                uniqueKeys(keyCount) = key
+                uniqueValues(keyCount) = cns
+                keyCount = keyCount + 1
+            End If
+        End If
+    Next i
+    
+    If keyCount = 0 Then
+        MsgBox "No data found in columns J,K,L from row 12", 0, "Error"
+        Exit Sub
+    End If
+    
+    ' Create new document
+    oODTDoc = StarDesktop.loadComponentFromURL("private:factory/swriter", "_blank", 0, Array())
+    If IsNull(oODTDoc) Then
+        MsgBox "Could not create document", 0, "Error"
+        Exit Sub
+    End If
+    
+    ' Set page margins (in 1/1000th of an inch)
+    Dim pageStyle As Object
+    pageStyle = oODTDoc.StyleFamilies.getByName("PageStyles").getByName("Standard")
+    pageStyle.LeftMargin = 500
+    pageStyle.RightMargin = 300
+    pageStyle.TopMargin = 500
+    pageStyle.BottomMargin = 500
+    pageStyle.GutterMargin = 0
+    
+    ' Enable and set up header
+    pageStyle.HeaderIsOn = True
+    Dim headerText As Object
+    headerText = pageStyle.HeaderText
+    If Not IsNull(headerText) Then
+       ' Primeiro limpe o conteúdo existente se necessário
+        headerText.setString("")
+        
+        Dim headerCursor As Object
+        headerCursor = headerText.createTextCursor()
+        
+        ' APLIQUE AS PROPRIEDADES ANTES de inserir o texto
+        headerCursor.setPropertyValue("CharFontName", "Calibri")
+        headerCursor.setPropertyValue("CharHeight", 11)  ' Fonte 11 como desejado
+        headerCursor.setPropertyValue("ParaAdjust", com.sun.star.style.ParagraphAdjust.LEFT)
+        
+        ' Agora insira o texto
+        headerText.insertString(headerCursor, _
+            "Concordamos com as medidas apresentadas na planta constante do anverso e memorial descritivo anexo, nos espaços em que o referido imóvel faz confrontação com o imóvel de nossa propriedade. Declaramos que os limites divisórios foram respeitados." & _
+            Chr(10) & Chr(10), False)
+    End If
+        
+    ' Get main text and cursor
+    oText = oODTDoc.getText()
+    oCursor = oText.createTextCursor()
+    If IsNull(oCursor) Then
+        oODTDoc.close(True)
+        MsgBox "Could not create text cursor", 0, "Error"
+        Exit Sub
+    End If
+    
+    ' Set paragraph style to left-aligned
+    oCursor.setPropertyValue("ParaAdjust", com.sun.star.style.ParagraphAdjust.LEFT)
+    
+    ' Arrays to store different types of items
+    Dim noHyphenItems(), hyphenItems()
+    Dim noHyphenCount As Long, hyphenCount As Long
+    noHyphenCount = 0
+    hyphenCount = 0
+    ReDim noHyphenItems(keyCount - 1)
+    ReDim hyphenItems(keyCount - 1)
+    
+    ' First pass: classify items and store their content
+    Dim keyParts() As String
+    For i = 0 To keyCount - 1
+        keyParts = Split(uniqueKeys(i), "|")
+        
+        ' Check if description contains "-"
+        If InStr(keyParts(0), " - ") > 0 Then
+            ' It's a hyphen item - store for later processing
+            hyphenItems(hyphenCount) = uniqueKeys(i) & "|" & uniqueValues(i)
+            hyphenCount = hyphenCount + 1
+        Else
+            ' It's a no-hyphen item - process immediately
+            noHyphenItems(noHyphenCount) = uniqueKeys(i) & "|" & uniqueValues(i)
+            noHyphenCount = noHyphenCount + 1
+        End If
+    Next i
+    
+    ' Resize arrays to actual counts
+    ReDim Preserve noHyphenItems(noHyphenCount - 1)
+    If hyphenCount > 0 Then
+        ReDim Preserve hyphenItems(hyphenCount - 1) 
+    End If
+    
+    ' Process no-hyphen items first (in their original order)
+    For i = 0 To noHyphenCount - 1
+        keyParts = Split(noHyphenItems(i), "|")
+        ProcessItem oText, oCursor, oODTDoc, keyParts(0), keyParts(1), keyParts(2), False, i < noHyphenCount - 1 Or hyphenCount > 0
+    Next i
+    
+    ' Process hyphen items (grouped by name)
+    If hyphenCount > 0 Then
+        Dim processedNames()
+        ReDim processedNames(hyphenCount - 1)
+        Dim nameCount As Long
+        nameCount = 0
+        
+        For i = 0 To hyphenCount - 1
+            keyParts = Split(hyphenItems(i), "|")
+            
+            ' Extract the name before the hyphen
+            Dim hyphenPos As Long
+            hyphenPos = InStr(keyParts(0), "-")
+            Dim currentName As String
+            currentName = Trim(Left(keyParts(0), hyphenPos - 1))
+            
+            ' Check if we've already processed this name
+            Dim nameExists As Boolean
+            nameExists = False
+            For j = 0 To nameCount - 1
+                If processedNames(j) = currentName Then
+                    nameExists = True
+                    Exit For
+                End If
+            Next j
+            
+            If Not nameExists Then
+                ' Add the group header
+                processedNames(nameCount) = currentName
+                nameCount = nameCount + 1
+                
+                ' Insert the name with additional text
+                oCursor.setPropertyValue("CharFontName", "Calibri")
+                oCursor.setPropertyValue("CharHeight", 12)
+                oCursor.setPropertyValue("CharWeight", com.sun.star.awt.FontWeight.BOLD)
+                oCursor.setPropertyValue("CharUnderline", com.sun.star.awt.FontUnderline.SINGLE)
+                oText.insertString(oCursor, currentName & ", menos de 15 metros lineares e não navegável" & Chr(10), False)
+                oCursor.setPropertyValue("CharHeight", 8)
+                oText.insertString(oCursor, Chr(10) & Chr(10), False)
+                oCursor.setPropertyValue("CharHeight", 12)
+                
+                ' Process all items with this name
+                For j = 0 To hyphenCount - 1
+                    Dim keyParts2() As String
+                    keyParts2 = Split(hyphenItems(j), "|")
+                    
+                    Dim hyphenPos2 As Long
+                    hyphenPos2 = InStr(keyParts2(0), "-")
+                    Dim itemName As String
+                    itemName = Trim(Left(keyParts2(0), hyphenPos2 - 1))
+                    
+                    If itemName = currentName Then
+                        ProcessItem oText, oCursor, oODTDoc, keyParts2(0), keyParts2(1), keyParts2(2), True, j < hyphenCount - 1
+                    End If
+                Next j
+            End If
+        Next i
+    End If
+    
+    ' Save file in the same directory as the original ODS
+    sODSPath = oDoc.getURL()
+    
+    Dim i2 As Long
+    Dim pathSeparatorPos As Long
+    pathSeparatorPos = 0
+    For i2 = Len(sODSPath) To 1 Step -1
+        If Mid(sODSPath, i2, 1) = "/" Then
+            pathSeparatorPos = i2
+            Exit For
+        End If
+    Next i2
+    
+    Dim fileName As String
+    Dim dirPath As String
+    
+    If pathSeparatorPos > 0 Then
+        dirPath = Left(sODSPath, pathSeparatorPos)
+        fileName = Mid(sODSPath, pathSeparatorPos + 1)
+        fileName = Left(fileName, Len(fileName) - 4) & ".odt" ' remove .ods and add .odt
+        fileName = "Lindeiros " & fileName
+        humanPath = dirPath & fileName
+    Else
+        humanPath = "Lindeiros Resultado.odt"
+    End If
+
+    
+    Dim fileProps(0) As New com.sun.star.beans.PropertyValue
+    fileProps(0).Name = "FilterName"
+    fileProps(0).Value = "writer8"
+    
+    On Error Resume Next
+    oODTDoc.storeAsURL(ConvertToURL(humanPath), fileProps)
+    If Err Then
+        MsgBox "Error saving file: " & Err & " - " & Error$, 0, "Error"
+        oODTDoc.close(True)
+        Exit Sub
+    End If
+    On Error GoTo 0
+           
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Error " & Err & ": " & Error$, 0, "Macro Error"
+    If Not IsNull(oODTDoc) Then oODTDoc.close(True)
+End Sub
+
+Sub ProcessItem(oText As Object, oCursor As Object, oODTDoc As Object, desc As String, mat As String, cns As String, isHyphenItem As Boolean, addSeparator As Boolean)
+    Dim registryOffice As String
+    registryOffice = MapCNS(cns)
+    
+    ' Check if there are multiple matriculas separated by commas
+    Dim matriculas() As String
+    matriculas = Split(mat, ",")
+    
+    ' Process each matricula separately
+    For i = 0 To UBound(matriculas)
+        Dim currentMat As String
+        currentMat = Trim(matriculas(i))
+        
+        ' Set font properties for the text we're about to insert
+        oCursor.setPropertyValue("CharFontName", "Calibri")
+        oCursor.setPropertyValue("CharHeight", 12)
+        oCursor.setPropertyValue("CharWeight", com.sun.star.awt.FontWeight.BOLD)
+        oCursor.setPropertyValue("CharUnderline", com.sun.star.awt.FontUnderline.SINGLE)
+        
+        If isHyphenItem Then
+            ' For hyphen items, process the description
+            Dim hyphenPos As Long
+            hyphenPos = InStr(desc, "-")
+            Dim partAfter As String
+            partAfter = Trim(Mid(desc, hyphenPos + 1))
+            
+            ' Replace L.R. variations
+            partAfter = Replace(partAfter, "L. R.", "Lote Rural")
+            partAfter = Replace(partAfter, "L.R.", "Lote Rural")
+            partAfter = Replace(partAfter, "Pte", "Parte")
+            
+            Dim descParts() As String
+            partAfter = Replace(partAfter, " e ", ",")  ' Substitui " e " por ","
+            descParts = Split(partAfter, ",")
+            
+            ' If we have multiple matriculas and multiple L.R. references, match them
+            If UBound(matriculas) > 0 And UBound(descParts) > 0 Then
+                ' Use the corresponding part of the description for this matricula
+                If i <= UBound(descParts) Then
+                    Dim currentDescPart As String
+                    currentDescPart = descParts(i)
+                    
+                    ' Clean up the description part
+                    currentDescPart = Trim(currentDescPart)
+                    currentDescPart = Replace(currentDescPart, "  ", " ")
+                    
+                    ' Insert the processed description for this matricula
+                    oText.insertString(oCursor, currentDescPart & _
+                        " — Matrícula N° " & FormatarMilhar(currentMat) & _
+                        " — " & registryOffice & Chr(10) & Chr(10), False)
+                End If
+            Else
+                ' Just use the full description if we don't have matching parts
+                oText.insertString(oCursor, partAfter & _
+                    " — Matrícula N° " & FormatarMilhar(currentMat) & _
+                    " — " & registryOffice & Chr(10) & Chr(10), False)
+            End If
+        Else
+            ' For no-hyphen items, insert as is
+            oText.insertString(oCursor, _
+                desc & _
+                " — Matrícula N° " & FormatarMilhar(currentMat) & _
+                " — " & registryOffice & Chr(10) & Chr(10), False)
+        End If
+        
+        oCursor.setPropertyValue("CharWeight", com.sun.star.awt.FontWeight.NORMAL)
+        oCursor.setPropertyValue("CharUnderline", com.sun.star.awt.FontUnderline.NONE)
+        
+        ' Insert first field (Nome)
+        Dim textField1 As Object
+        textField1 = oODTDoc.createInstance("com.sun.star.text.TextField.Input")
+        textField1.Content = "Nome"
+        oText.insertTextContent(oCursor, textField1, False)
+        
+        ' Insert separator " — "
+        oText.insertString(oCursor, " — ", False)
+        
+        ' Insert second field (CPF/CNPJ)
+        Dim textField2 As Object
+        textField2 = oODTDoc.createInstance("com.sun.star.text.TextField.Input")
+        textField2.Content = "CPF/CNPJ"
+        oText.insertTextContent(oCursor, textField2, False)
+        
+        oCursor.setPropertyValue("CharHeight", 8)
+        
+        ' Vertical space before signature line
+        oText.insertString(oCursor, Chr(10) & Chr(10), False)
+        
+        ' Insert signature line
+        oText.insertString(oCursor, "___________________________________", False)
+        
+        ' Vertical space before term
+        oText.insertString(oCursor, Chr(10) & Chr(10), False)
+        
+        oText.insertString(oCursor, """Estou ciente de que, nos termos do §10 do artigo 213 da LRP, minha anuência supre a participação do cônjuge e de eventuais outros condôminos titulares de nosso imóvel.""" & Chr(10), False)
+        
+        ' Insert line breaks if needed (only after the last matricula)
+        If i < UBound(matriculas) Or addSeparator Then
+            oText.insertString(oCursor, Chr(10) & Chr(10), False)
+        End If
+    Next i
+End Sub

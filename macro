@@ -300,7 +300,7 @@ Sub ExportUniqueRowsToODT_FinalDebugged()
             For j = 0 To keyCount - 1
                 Dim parts() As String
                 parts = Split(uniqueKeys(j), "|")
-                If parts(0) = desc Or parts(1) = mat Then
+                If parts(0) = desc And parts(1) = mat Then
                     exists = True
                     Exit For
                 End If

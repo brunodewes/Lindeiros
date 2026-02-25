@@ -188,25 +188,25 @@ Function MapCNS(cnsNumber As String) As String
     ' Map CNS numbers to registry offices
     Select Case cleanCNS
         Case "083022", "08302-2"
-            MapCNS = "1º Registro de Imóveis de Cascavel – Paraná"
+            MapCNS = "1º S.R.I. de Cascavel – Paraná"
         Case "085571", "08557-1"
-            MapCNS = "2º Registro de Imóveis de Cascavel – Paraná"
+            MapCNS = "2º S.R.I. de Cascavel – Paraná"
         Case "080473", "08047-3"
-            MapCNS = "3º Registro de Imóveis de Cascavel – Paraná"
+            MapCNS = "3º S.R.I. de Cascavel – Paraná"
         Case "088401", "08840-1"
-            MapCNS = "1º Registro de Imóveis de Toledo – Paraná"
+            MapCNS = "1º S.R.I. de Toledo – Paraná"
         Case "080226", "08022-6"
-            MapCNS = "2º Registro de Imóveis de Toledo – Paraná"
+            MapCNS = "2º S.R.I. de Toledo – Paraná"
         Case "079962", "07996-2"
-            MapCNS = "1º Registro de Imóveis de Assis Chateaubriand – Paraná"
+            MapCNS = "1º S.R.I. de Assis Chateaubriand – Paraná"
         Case "080804", "08080-4"
-            MapCNS = "2º Registro de Imóveis de Assis Chateaubriand – Paraná"
+            MapCNS = "2º S.R.I. de Assis Chateaubriand – Paraná"
         Case "085183", "08518-3"
-            MapCNS = "Registro de Imóveis de Marechal Cândido Rondon – Paraná"
+            MapCNS = "S.R.I. de Marechal Cândido Rondon – Paraná"
         Case "086041", "08604-1"
-            MapCNS = "Registro de Imóveis de Palotina – Paraná"
+            MapCNS = "S.R.I. de Palotina – Paraná"
         Case "085464", "08546-4"
-            MapCNS = "Registro de Imóveis de Santa Helena – Paraná"
+            MapCNS = "S.R.I. de Santa Helena – Paraná"
         Case Else
             MapCNS = "Registro de Imóveis não identificado"
     End Select
@@ -300,7 +300,7 @@ Sub ExportUniqueRowsToODT_FinalDebugged()
             For j = 0 To keyCount - 1
                 Dim parts() As String
                 parts = Split(uniqueKeys(j), "|")
-                If parts(0) = desc And parts(1) = mat Then
+                If parts(1) = mat Then
                     exists = True
                     Exit For
                 End If
@@ -605,10 +605,10 @@ Sub ProcessItem(oText As Object, oCursor As Object, oODTDoc As Object, desc As S
         oCursor.setPropertyValue("CharHeight", 8)
         
         ' Vertical space before signature line
-        oText.insertString(oCursor, Chr(10) & Chr(10), False)
+        oText.insertString(oCursor, Chr(10) & Chr(10) & Chr(10), False)
         
         ' Insert signature line
-        oText.insertString(oCursor, "___________________________________", False)
+        oText.insertString(oCursor, "________________________________________", False)
         
         ' Vertical space before term
         oText.insertString(oCursor, Chr(10) & Chr(10), False)

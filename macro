@@ -527,6 +527,17 @@ Sub ProcessItem(oText As Object, oCursor As Object, oODTDoc As Object, desc As S
     Dim matriculas() As String
     matriculas = Split(mat, ",")
     
+    ' Normalização da descrição para TODOS os casos
+    Dim descTratada As String
+    descTratada = desc
+    
+    descTratada = Replace(descTratada, "L. R.", "Lote Rural")
+    descTratada = Replace(descTratada, "L.R.", "Lote Rural")
+    descTratada = Replace(descTratada, "Pte", "Parte")
+    
+    ' Permite separar itens por " e "
+    descTratada = Replace(descTratada, " e ", ",")
+    
     ' Process each matricula separately
     For i = 0 To UBound(matriculas)
         Dim currentMat As String
@@ -539,49 +550,52 @@ Sub ProcessItem(oText As Object, oCursor As Object, oODTDoc As Object, desc As S
         oCursor.setPropertyValue("CharUnderline", com.sun.star.awt.FontUnderline.SINGLE)
         
         If isHyphenItem Then
-            ' For hyphen items, process the description
+            ' Para itens com hífen, usar apenas a parte após o hífen
             Dim hyphenPos As Long
-            hyphenPos = InStr(desc, "-")
-            Dim partAfter As String
-            partAfter = Trim(Mid(desc, hyphenPos + 1))
+            hyphenPos = InStr(descTratada, "-")
             
-            ' Replace L.R. variations
-            partAfter = Replace(partAfter, "L. R.", "Lote Rural")
-            partAfter = Replace(partAfter, "L.R.", "Lote Rural")
-            partAfter = Replace(partAfter, "Pte", "Parte")
+            Dim partAfter As String
+            partAfter = Trim(Mid(descTratada, hyphenPos + 1))
             
             Dim descParts() As String
-            partAfter = Replace(partAfter, " e ", ",")  ' Substitui " e " por ","
             descParts = Split(partAfter, ",")
             
-            ' If we have multiple matriculas and multiple L.R. references, match them
+            ' Se houver várias matrículas e várias descrições, associar por índice
             If UBound(matriculas) > 0 And UBound(descParts) > 0 Then
-                ' Use the corresponding part of the description for this matricula
                 If i <= UBound(descParts) Then
                     Dim currentDescPart As String
-                    currentDescPart = descParts(i)
+                    currentDescPart = Trim(descParts(i))
                     
-                    ' Clean up the description part
-                    currentDescPart = Trim(currentDescPart)
-                    currentDescPart = Replace(currentDescPart, "  ", " ")
-                    
-                    ' Insert the processed description for this matricula
-                    oText.insertString(oCursor, currentDescPart & _
+                    oText.insertString(oCursor, _
+                        currentDescPart & _
                         " — Matrícula N° " & FormatarMilhar(currentMat) & _
                         " — " & registryOffice & Chr(10) & Chr(10), False)
                 End If
             Else
-                ' Just use the full description if we don't have matching parts
-                oText.insertString(oCursor, partAfter & _
+                oText.insertString(oCursor, _
+                    partAfter & _
                     " — Matrícula N° " & FormatarMilhar(currentMat) & _
                     " — " & registryOffice & Chr(10) & Chr(10), False)
             End If
+            
         Else
-            ' For no-hyphen items, insert as is
-            oText.insertString(oCursor, _
-                desc & _
-                " — Matrícula N° " & FormatarMilhar(currentMat) & _
-                " — " & registryOffice & Chr(10) & Chr(10), False)
+            ' Para itens sem hífen, também permitir associação por índice
+            Dim descPartsSemHifen() As String
+            descPartsSemHifen = Split(descTratada, ",")
+            
+            If UBound(matriculas) > 0 And UBound(descPartsSemHifen) > 0 Then
+                If i <= UBound(descPartsSemHifen) Then
+                    oText.insertString(oCursor, _
+                        Trim(descPartsSemHifen(i)) & _
+                        " — Matrícula N° " & FormatarMilhar(currentMat) & _
+                        " — " & registryOffice & Chr(10) & Chr(10), False)
+                End If
+            Else
+                oText.insertString(oCursor, _
+                    Trim(descTratada) & _
+                    " — Matrícula N° " & FormatarMilhar(currentMat) & _
+                    " — " & registryOffice & Chr(10) & Chr(10), False)
+            End If
         End If
         
         oCursor.setPropertyValue("CharWeight", com.sun.star.awt.FontWeight.NORMAL)
@@ -605,7 +619,7 @@ Sub ProcessItem(oText As Object, oCursor As Object, oODTDoc As Object, desc As S
         oCursor.setPropertyValue("CharHeight", 8)
         
         ' Vertical space before signature line
-        oText.insertString(oCursor, Chr(10) & Chr(10) & Chr(10), False)
+        oText.insertString(oCursor, Chr(10) & Chr(10) & Chr(10) & Chr(10) & Chr(10), False)
         
         ' Insert signature line
         oText.insertString(oCursor, "________________________________________", False)
